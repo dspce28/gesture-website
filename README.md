@@ -14,8 +14,13 @@ Gesture vocabulary:
 
 ## Status
 
+**Phase 1 — scroll physics.** Momentum scrolling driven by wheel and keyboard,
+with a live tuning HUD. No camera involved: tuning feel and debugging hand
+tracking at the same time makes it impossible to tell which layer is stuttering.
+
 **Phase 0 — pipeline.** Camera → worker → landmarks, with instrumentation.
-Later phases add scroll physics, then gesture input, then the site itself.
+
+Next: gesture swipes feed velocity into the Phase 1 engine.
 
 ## Running it
 
@@ -24,15 +29,17 @@ npm install   # also vendors the MediaPipe wasm + model into public/
 npm run dev
 ```
 
-Open the printed localhost URL and click *Enable camera*. `localhost` counts as
-a secure origin, so `getUserMedia` works without a certificate.
+Open the printed localhost URL. Two dev views: **Scroll feel** (default) and
+**Pipeline** (`#pipeline`), which needs a camera. `localhost` counts as
+a secure origin, so `getUserMedia` works there without a certificate.
 
 ## How it is put together
 
     src/gesture/          engine -- no React, no DOM assumptions
       worker/             MediaPipe inference, off the main thread
       session.ts          camera ownership + worker plumbing
-    src/components/       diagnostics UI
+    src/scroll/           physics, scroller backends, rAF loop
+    src/components/       diagnostics and tuning UI
     public/mediapipe/     vendored wasm + model (generated, git-ignored)
     scripts/              vendoring script, runs on postinstall
 

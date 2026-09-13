@@ -71,6 +71,9 @@ function installImportScripts() {
       if (xhr.status >= 400) {
         throw new Error(`importScripts failed: ${url} (${xhr.status})`);
       }
+      // Indirect eval is the point here: it evaluates in global scope, which is
+      // where MediaPipe looks for ModuleFactory. See the note above.
+      // eslint-disable-next-line no-eval
       (0, eval)(xhr.responseText);
     }
   };
