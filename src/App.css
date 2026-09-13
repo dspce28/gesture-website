@@ -1,0 +1,109 @@
+:root {
+  --bg: #0b0a14;
+  --surface: #15131f;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #ece9f5;
+  --muted: #8f88ab;
+  --accent: #ff5a36;
+  --ok: #3ddc84;
+  --warn: #ffb020;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.6 system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 5rem) 1.25rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+h1 { margin: 0 0 0.75rem; font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing: -0.02em; }
+.lead { margin: 0; color: var(--muted); max-width: 52ch; }
+
+.panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin: 2.5rem 0 1.5rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.stats {
+  flex: 1 1 240px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.85rem 1.25rem;
+  margin: 0;
+}
+
+.stat dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stat dd {
+  margin: 0.15rem 0 0;
+  font: 600 1.15rem ui-monospace, SFMono-Regular, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat dd.ok { color: var(--ok); }
+.stat dd.warn { color: var(--warn); }
+
+.actions { display: flex; gap: 0.75rem; }
+
+.btn {
+  font: 600 0.95rem system-ui, sans-serif;
+  padding: 0.8rem 1.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.2s, transform 0.2s;
+}
+
+.btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.error {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: rgba(179, 38, 30, 0.18);
+  border: 1px solid rgba(179, 38, 30, 0.5);
+  font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
