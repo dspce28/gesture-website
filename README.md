@@ -93,3 +93,15 @@ relaxed return never crosses the line and a deliberate stroke cannot flicker.
 And pose: only an extended index finger drives the page, so curling it is a
 deliberate escape hatch when a fast return is needed — the same idea as lifting
 a mouse off the pad.
+
+### Keep telemetry off the main thread too
+
+The first gesture build scrolled at 16–28fps despite inference being in a
+worker. The cause was the instrumentation: HUD values held in React state meant
+a re-render of the whole page on every scroll frame and every tracked frame.
+The numbers reporting on the main thread were the thing saturating it.
+
+HUD components now read live values from refs inside their own paint loop and
+write to the DOM directly. React state is reserved for discrete, low-frequency
+facts like status and error text. The same rule applies to any scroll-linked
+effect added later.

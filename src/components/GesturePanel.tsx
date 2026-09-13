@@ -1,5 +1,6 @@
-import type { SwipeConfig, SwipeState } from '../gesture/swipe';
+import { useEffect, useRef } from 'react';
 import type { SessionStats } from '../gesture/session';
+import type { SwipeConfig, SwipeState } from '../gesture/swipe';
 import type { Landmark } from '../gesture/types';
 import type { GestureStatus } from '../react/useGestureScroll';
 import { HandCanvas } from './HandCanvas';
@@ -11,34 +12,85 @@ const SWIPE_KNOBS: ReadonlyArray<{
   max: number;
   step: number;
 }> = [
-  { key: 'engageSpeed', label: 'engage at', min: 0.4, max: 5, step: 0.1 },
-  { key: 'releaseSpeed', label: 'release at', min: 0.1, max: 3, step: 0.1 },
+  { key: 'engageSpeed', label: 'engage at', min: 0.2, max: 4, step: 0.1 },
+  { key: 'releaseSpeed', label: 'release at', min: 0.1, max: 2.5, step: 0.1 },
   { key: 'gain', label: 'gain', min: 80, max: 1400, step: 20 },
 ];
 
 const BLOCKED_LABEL: Record<SwipeState['blockedBy'], string> = {
   none: 'driving',
-  pose: 'point your index finger',
+  pose: 'straighten your index finger',
   speed: 'swipe faster to engage',
   'no-hand': 'show your hand',
 };
 
+/** Full-scale of the speed meter, in hand-widths/s. */
+const METER_RANGE = 5;
+
 interface Props {
   status: GestureStatus;
   error: string | null;
-  stats: SessionStats | null;
-  swipe: SwipeState;
   config: SwipeConfig;
   setConfig: React.Dispatch<React.SetStateAction<SwipeConfig>>;
   landmarksRef: React.RefObject<Landmark[] | null>;
+  swipeRef: React.RefObject<SwipeState>;
+  statsRef: React.RefObject<SessionStats | null>;
   onStart: () => void;
   onStop: () => void;
 }
 
 export function GesturePanel({
-  status, error, stats, swipe, config, setConfig, landmarksRef, onStart, onStop,
+  status, error, config, setConfig, landmarksRef, swipeRef, statsRef, onStart, onStop,
 }: Props) {
   const running = status === 'running';
+
+  const stateEl = useRef<HTMLDivElement>(null);
+  const fillEl = useRef<HTMLDivElement>(null);
+  const speedEl = useRef<HTMLElement>(null);
+  const fpsEl = useRef<HTMLElement>(null);
+  const costEl = useRef<HTMLElement>(null);
+
+  /**
+   * Paint telemetry from refs in our own loop. Routing these through React
+   * state would re-render this tree on every tracked frame, and that cost lands
+   * on the main thread -- starving the scroll loop it is meant to be reporting
+   * on. Measured: doing it the naive way dropped scrolling to under 30fps.
+   */
+  useEffect(() => {
+    if (!running) return;
+    let raf = 0;
+
+    const paint = () => {
+      raf = requestAnimationFrame(paint);
+      const s = swipeRef.current;
+      const stats = statsRef.current;
+
+      if (stateEl.current) {
+        stateEl.current.textContent = BLOCKED_LABEL[s.blockedBy];
+        stateEl.current.classList.toggle('live', s.driving);
+      }
+      if (speedEl.current) speedEl.current.textContent = s.speed.toFixed(2);
+      if (fpsEl.current) {
+        fpsEl.current.textContent = `${stats?.fps ?? 0} fps`;
+        fpsEl.current.className = (stats?.fps ?? 0) >= 20 ? 'ok' : 'warn';
+      }
+      if (costEl.current && stats) {
+        costEl.current.textContent = `${stats.inferenceMs.toFixed(0)}ms ${stats.delegate}`;
+      }
+      if (fillEl.current) {
+        const pct = Math.min(50, (Math.abs(s.speed) / METER_RANGE) * 50);
+        const up = s.speed < 0;
+        fillEl.current.style.left = up ? 'auto' : '50%';
+        fillEl.current.style.right = up ? '50%' : 'auto';
+        fillEl.current.style.width = `${pct}%`;
+      }
+    };
+
+    paint();
+    return () => cancelAnimationFrame(raf);
+  }, [running, swipeRef, statsRef]);
+
+  const gateOffset = (config.engageSpeed / METER_RANGE) * 50;
 
   return (
     <aside className="ghud">
@@ -46,40 +98,29 @@ export function GesturePanel({
         <>
           <HandCanvas landmarksRef={landmarksRef} size={176} />
 
-          <div className={`state ${swipe.driving ? 'live' : ''}`}>
-            {BLOCKED_LABEL[swipe.blockedBy]}
+          <div className="state" ref={stateEl}>
+            show your hand
           </div>
 
           {/* Speed meter, centred on zero: left is swipe-up, right is down. */}
           <div className="meter" aria-hidden="true">
             <div className="meter-zero" />
-            <div
-              className="meter-fill"
-              style={{
-                left: swipe.speed < 0 ? 'auto' : '50%',
-                right: swipe.speed < 0 ? '50%' : 'auto',
-                width: `${Math.min(50, (Math.abs(swipe.speed) / 5) * 50)}%`,
-              }}
-            />
-            <div
-              className="meter-gate"
-              style={{ left: `${50 + (config.engageSpeed / 5) * 50}%` }}
-            />
-            <div
-              className="meter-gate"
-              style={{ left: `${50 - (config.engageSpeed / 5) * 50}%` }}
-            />
+            <div className="meter-fill" ref={fillEl} />
+            <div className="meter-gate" style={{ left: `${50 + gateOffset}%` }} />
+            <div className="meter-gate" style={{ left: `${50 - gateOffset}%` }} />
           </div>
 
           <div className="hud-row">
             <span>finger</span>
-            <strong>{swipe.speed.toFixed(2)}</strong>
+            <strong ref={speedEl}>0.00</strong>
           </div>
           <div className="hud-row">
-            <span>inference</span>
-            <strong className={(stats?.fps ?? 0) >= 20 ? 'ok' : 'warn'}>
-              {stats?.fps ?? 0} fps
-            </strong>
+            <span>tracking</span>
+            <strong ref={fpsEl}>0 fps</strong>
+          </div>
+          <div className="hud-row">
+            <span>cost</span>
+            <strong ref={costEl}>—</strong>
           </div>
 
           <div className="knobs">
@@ -104,12 +145,15 @@ export function GesturePanel({
             <label className="check">
               <input
                 type="checkbox"
-                checked={config.requirePointPose}
+                checked={config.requireIndexExtended}
                 onChange={(e) =>
-                  setConfig((c) => ({ ...c, requirePointPose: e.target.checked }))
+                  setConfig((c) => ({
+                    ...c,
+                    requireIndexExtended: e.target.checked,
+                  }))
                 }
               />
-              <span>require pointing pose</span>
+              <span>curl finger to pause</span>
             </label>
           </div>
 
@@ -120,8 +164,8 @@ export function GesturePanel({
       ) : (
         <>
           <p className="ghud-intro">
-            Swipe your index finger <strong>up</strong> to scroll down. Curl the
-            finger to move it back without scrolling.
+            Swipe your hand <strong>up</strong> to scroll down. Curl your index
+            finger to move back without scrolling.
           </p>
           <button
             className="btn small"

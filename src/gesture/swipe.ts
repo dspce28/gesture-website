@@ -32,8 +32,14 @@ export interface SwipeConfig {
   releaseSpeed: number;
   /** Scroll velocity (px/s) per unit of finger speed (hand-widths/s). */
   gain: number;
-  /** Require the pointing pose. Off = any hand motion scrolls. */
-  requirePointPose: boolean;
+  /**
+   * Require an extended index finger. Curling it is then the pause gesture.
+   *
+   * This deliberately does NOT require the other fingers to be curled. People
+   * swipe with a relaxed open hand, not a pointing finger, and demanding a
+   * strict pointing pose rejects most real swipes.
+   */
+  requireIndexExtended: boolean;
   /** Flip the mapping (swipe up scrolls up). */
   invert: boolean;
   filterMinCutoff: number;
@@ -41,10 +47,10 @@ export interface SwipeConfig {
 }
 
 export const DEFAULT_SWIPE: SwipeConfig = {
-  engageSpeed: 1.6,
-  releaseSpeed: 0.7,
+  engageSpeed: 1.0,
+  releaseSpeed: 0.45,
   gain: 420,
-  requirePointPose: true,
+  requireIndexExtended: true,
   invert: false,
   filterMinCutoff: 1.0,
   filterBeta: 2.5,
@@ -100,7 +106,7 @@ export class SwipeDetector {
    * source, exactly like the wheel.
    */
   update(m: HandMetrics, t: number): SwipeState {
-    const { engageSpeed, releaseSpeed, gain, requirePointPose, invert } =
+    const { engageSpeed, releaseSpeed, gain, requireIndexExtended, invert } =
       this.config;
 
     // Smooth the tip first, then differentiate. Differentiating raw landmarks
@@ -122,7 +128,9 @@ export class SwipeDetector {
     // Light additional smoothing on the speed estimate itself.
     this.speed += (raw - this.speed) * 0.5;
 
-    const poseOk = !requirePointPose || m.pose === 'point';
+    // Index extended is the whole gate. Requiring the other fingers to be
+    // curled as well rejected most real swipes: people swipe with an open hand.
+    const poseOk = !requireIndexExtended || m.indexExtended;
     const magnitude = Math.abs(this.speed);
 
     if (!poseOk) {

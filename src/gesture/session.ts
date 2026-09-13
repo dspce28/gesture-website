@@ -86,12 +86,16 @@ export class GestureSession {
     });
 
     try {
+      // Inference cost scales with pixel count, and hand landmarks do not need
+      // resolution -- 480x360 tracks just as well as 720p and costs a third as
+      // much. Frame rate is capped at the inference rate too: decoding 60fps
+      // when we sample 30 is pure waste, and both compete for the same GPU.
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 60 },
+          width: { ideal: 480 },
+          height: { ideal: 360 },
+          frameRate: { ideal: this.opts.targetFps, max: this.opts.targetFps },
         },
         audio: false,
       });
