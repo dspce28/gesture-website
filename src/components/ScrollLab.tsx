@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useGestureScroll } from '../react/useGestureScroll';
+import { GesturePanel } from './GesturePanel';
 import { ScrollController } from '../scroll/controller';
 import { DEFAULT_PHYSICS, type PhysicsConfig } from '../scroll/physics';
 import { TransformScroller } from '../scroll/scroller';
@@ -34,6 +36,7 @@ export function ScrollLab() {
   const controllerRef = useRef<ScrollController | null>(null);
   const [cfg, setCfg] = useState<PhysicsConfig>({ ...DEFAULT_PHYSICS });
   const [hud, setHud] = useState({ position: 0, velocity: 0, max: 0, fps: 0 });
+  const gesture = useGestureScroll(controllerRef);
 
   useEffect(() => {
     const el = contentRef.current;
@@ -65,12 +68,14 @@ export function ScrollLab() {
           <p className="eyebrow">Phase 1 · scroll feel</p>
           <h1>Scroll physics</h1>
           <p className="lead">
-            Deliberately driven by the wheel, with no camera involved. Tuning the
-            feel and debugging hand tracking at the same time is how you end up
-            unable to tell which layer is stuttering.
+            Built and tuned on the wheel first, with no camera involved. Tuning the
+            feel and debugging hand tracking at once is how you end up
+            unable to tell which layer is stuttering. Gestures now feed the same
+            engine: a swipe is just another velocity source.
           </p>
           <p className="lead">
-            Use the wheel, arrows, space, page keys, home and end. Flick hard and
+            Use the wheel, arrows, space, page keys, home and end. Or enable
+            gestures on the left and swipe your index finger. Flick hard and
             watch it coast.
           </p>
 
@@ -92,6 +97,18 @@ export function ScrollLab() {
           </footer>
         </div>
       </div>
+
+      <GesturePanel
+        status={gesture.status}
+        error={gesture.error}
+        stats={gesture.stats}
+        swipe={gesture.swipe}
+        config={gesture.config}
+        setConfig={gesture.setConfig}
+        landmarksRef={gesture.landmarksRef}
+        onStart={gesture.start}
+        onStop={gesture.stop}
+      />
 
       <aside className="hud">
         <div className="hud-row">

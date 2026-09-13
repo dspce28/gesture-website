@@ -14,13 +14,17 @@ Gesture vocabulary:
 
 ## Status
 
+**Phase 2 — swipe to scroll.** Swipe the index finger up to scroll down. The
+gesture layer measures a hand and hands a velocity to the Phase 1 engine; it
+implements no scrolling of its own.
+
 **Phase 1 — scroll physics.** Momentum scrolling driven by wheel and keyboard,
 with a live tuning HUD. No camera involved: tuning feel and debugging hand
 tracking at the same time makes it impossible to tell which layer is stuttering.
 
 **Phase 0 — pipeline.** Camera → worker → landmarks, with instrumentation.
 
-Next: gesture swipes feed velocity into the Phase 1 engine.
+Next: double-tap to click, then pinch-hold to zoom.
 
 ## Running it
 
@@ -39,6 +43,7 @@ a secure origin, so `getUserMedia` works there without a certificate.
       worker/             MediaPipe inference, off the main thread
       session.ts          camera ownership + worker plumbing
     src/scroll/           physics, scroller backends, rAF loop
+    src/react/            hooks binding the two together
     src/components/       diagnostics and tuning UI
     public/mediapipe/     vendored wasm + model (generated, git-ignored)
     scripts/              vendoring script, runs on postinstall
@@ -75,3 +80,16 @@ long-lived caching for the model and wasm, and the SPA fallback rewrite.
 
 HTTPS is required — `getUserMedia` is blocked on insecure origins. Enable the
 free Let's Encrypt certificate on the subdomain before testing there.
+
+### The return-stroke problem
+
+Swipe-to-scroll's real difficulty is not detecting a swipe, it is ignoring the
+*return*. A long page needs many swipes, and each one has to travel back before
+the next. If the return counted, every swipe would be undone.
+
+Two independent gates handle it. Speed, with hysteresis: a swipe must exceed
+`engageSpeed` to take hold and only stops counting below `releaseSpeed`, so a
+relaxed return never crosses the line and a deliberate stroke cannot flicker.
+And pose: only an extended index finger drives the page, so curling it is a
+deliberate escape hatch when a fast return is needed — the same idea as lifting
+a mouse off the pad.

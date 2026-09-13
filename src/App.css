@@ -255,3 +255,113 @@ h1 { margin: 0 0 0.75rem; font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing:
 @media (max-width: 640px) {
   .hud { left: 16px; right: 16px; width: auto; }
 }
+
+/* ── gesture panel ─────────────────────────────────── */
+.ghud {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 90;
+  width: 200px;
+  padding: 0.9rem;
+  background: rgba(21, 19, 31, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  font: 500 11px ui-monospace, SFMono-Regular, monospace;
+}
+
+.ghud-intro {
+  margin: 0 0 0.8rem;
+  font: 400 11px/1.55 system-ui, sans-serif;
+  color: var(--muted);
+}
+
+.ghud-intro strong { color: var(--text); }
+
+.btn.small {
+  width: 100%;
+  padding: 0.55rem;
+  font-size: 0.8rem;
+}
+
+.state {
+  margin: 0.7rem 0 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 7px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.state.live { background: rgba(61, 220, 132, 0.16); color: var(--ok); }
+
+/* Bidirectional speed meter: centre is zero, ticks mark the engage threshold. */
+.meter {
+  position: relative;
+  height: 5px;
+  margin-bottom: 0.6rem;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+.meter-zero {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.meter-gate {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ok);
+  opacity: 0.55;
+}
+
+.knobs .check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.knobs .check input { accent-color: var(--accent); cursor: pointer; }
+
+.ghud-error {
+  margin: 0.7rem 0 0;
+  padding: 0.5rem;
+  border-radius: 7px;
+  background: rgba(179, 38, 30, 0.18);
+  border: 1px solid rgba(179, 38, 30, 0.45);
+  font: 400 10px/1.45 system-ui, sans-serif;
+}
+
+@media (max-width: 900px) {
+  .ghud { width: 168px; }
+}
+
+@media (max-width: 640px) {
+  .ghud, .hud { position: static; width: auto; margin: 1rem; }
+}

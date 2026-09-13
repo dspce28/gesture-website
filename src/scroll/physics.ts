@@ -63,6 +63,22 @@ export class ScrollPhysics {
     );
   }
 
+  /**
+   * Set velocity outright, for a continuous input that holds the page in
+   * motion -- a finger mid-swipe, say. Distinct from addVelocity: a wheel notch
+   * is a discrete shove that should accumulate, whereas a swipe is a sustained
+   * hold whose speed *is* the target. Accumulating the latter every frame would
+   * run away instantly.
+   */
+  drive(v: number) {
+    this.springTarget = null;
+    this.velocity = clamp(
+      v,
+      -this.config.maxVelocity,
+      this.config.maxVelocity
+    );
+  }
+
   /** A wheel notch or trackpad delta, in CSS pixels. */
   wheel(deltaY: number) {
     this.addVelocity(deltaY * this.config.wheelGain);
