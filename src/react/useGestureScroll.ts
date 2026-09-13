@@ -15,21 +15,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { analyze } from '../gesture/analysis';
 import { GestureSession, type SessionStats } from '../gesture/session';
 import {
-  DEFAULT_SWIPE,
-  SwipeDetector,
-  type SwipeConfig,
-  type SwipeState,
-} from '../gesture/swipe';
+  DEFAULT_POINTING,
+  PointingDetector,
+  type PointingConfig,
+  type PointingState,
+} from '../gesture/pointing';
 import type { Landmark } from '../gesture/types';
 import type { ScrollController } from '../scroll/controller';
 
 export type GestureStatus = 'idle' | 'starting' | 'running' | 'error';
 
-const IDLE_SWIPE: SwipeState = {
-  speed: 0,
-  driving: false,
+const IDLE_POINTING: PointingState = {
+  elevation: 0,
+  degrees: 0,
+  direction: 'neutral' as const,
   scrollVelocity: 0,
-  blockedBy: 'no-hand',
+  blockedBy: 'no-hand' as const,
 };
 
 export function useGestureScroll(
@@ -37,14 +38,14 @@ export function useGestureScroll(
 ) {
   const [status, setStatus] = useState<GestureStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [config, setConfig] = useState<SwipeConfig>({ ...DEFAULT_SWIPE });
+  const [config, setConfig] = useState<PointingConfig>({ ...DEFAULT_POINTING });
 
   const sessionRef = useRef<GestureSession | null>(null);
-  const detectorRef = useRef<SwipeDetector | null>(null);
+  const detectorRef = useRef<PointingDetector | null>(null);
 
   // Live values, polled by HUDs. Never rendered directly.
   const landmarksRef = useRef<Landmark[] | null>(null);
-  const swipeRef = useRef<SwipeState>(IDLE_SWIPE);
+  const pointRef = useRef<PointingState>(IDLE_POINTING);
   const statsRef = useRef<SessionStats | null>(null);
 
   // Knob changes reach the live detector without recreating it, so tuning
@@ -58,7 +59,7 @@ export function useGestureScroll(
     sessionRef.current = null;
     detectorRef.current = null;
     landmarksRef.current = null;
-    swipeRef.current = IDLE_SWIPE;
+    pointRef.current = IDLE_POINTING;
     statsRef.current = null;
     setStatus('idle');
   }, []);
@@ -70,7 +71,7 @@ export function useGestureScroll(
     setStatus('starting');
     setError(null);
 
-    const detector = new SwipeDetector(config);
+    const detector = new PointingDetector(config);
     detectorRef.current = detector;
 
     const session = new GestureSession({
@@ -84,17 +85,19 @@ export function useGestureScroll(
         landmarksRef.current = frame.landmarks;
 
         if (!frame.landmarks) {
-          swipeRef.current = detector.reset();
+          pointRef.current = detector.reset();
           return;
         }
 
         const metrics = analyze(frame.landmarks);
         const next = detector.update(metrics, frame.t);
-        swipeRef.current = next;
+        pointRef.current = next;
 
-        // Only write while actually swiping. Zeroing on release would kill the
-        // coast, and the coast is what makes one flick cover real distance.
-        if (next.driving) {
+        // Drive only while a direction is actually being pointed. Writing zero
+        // in the neutral band would hard-stop the page; leaving it alone lets
+        // the engine's friction glide to rest, which reads as deceleration
+        // rather than a stall.
+        if (next.direction !== 'neutral') {
           controllerRef.current?.physics.drive(next.scrollVelocity);
         }
       },
@@ -115,7 +118,7 @@ export function useGestureScroll(
     config,
     setConfig,
     landmarksRef,
-    swipeRef,
+    pointRef,
     statsRef,
     start,
     stop,

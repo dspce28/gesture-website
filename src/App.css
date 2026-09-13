@@ -365,3 +365,50 @@ h1 { margin: 0 0 0.75rem; font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing:
 @media (max-width: 640px) {
   .ghud, .hud { position: static; width: auto; margin: 1rem; }
 }
+
+/* ── elevation dial ────────────────────────────────── */
+.dialwrap { display: flex; gap: 8px; align-items: stretch; }
+
+.dial {
+  position: relative;
+  width: 26px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  flex: none;
+}
+
+/* The dead band: pointing inside this range does not scroll. */
+.dial-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.09);
+  border-top: 1px solid rgba(61, 220, 132, 0.5);
+  border-bottom: 1px solid rgba(61, 220, 132, 0.5);
+}
+
+.dial-needle {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(255, 90, 54, 0.7);
+}
+
+.dial-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: var(--muted2, #6b6485);
+  text-transform: uppercase;
+}
+
+.dial-cap.up { top: 2px; }
+.dial-cap.down { bottom: 2px; }

@@ -14,9 +14,9 @@ Gesture vocabulary:
 
 ## Status
 
-**Phase 2 — swipe to scroll.** Swipe the index finger up to scroll down. The
-gesture layer measures a hand and hands a velocity to the Phase 1 engine; it
-implements no scrolling of its own.
+**Phase 2 — point to scroll.** Point the index finger up to scroll up, down
+to scroll down, and hold the direction. The gesture layer measures a hand and
+hands a velocity to the Phase 1 engine; it implements no scrolling of its own.
 
 **Phase 1 — scroll physics.** Momentum scrolling driven by wheel and keyboard,
 with a live tuning HUD. No camera involved: tuning feel and debugging hand
@@ -81,18 +81,27 @@ long-lived caching for the model and wasm, and the SPA fallback rewrite.
 HTTPS is required — `getUserMedia` is blocked on insecure origins. Enable the
 free Let's Encrypt certificate on the subdomain before testing there.
 
-### The return-stroke problem
+### Pointing, not swiping
 
-Swipe-to-scroll's real difficulty is not detecting a swipe, it is ignoring the
-*return*. A long page needs many swipes, and each one has to travel back before
-the next. If the return counted, every swipe would be undone.
+The gesture is a held direction, not a flick. Watching a recording of it being
+performed settled the question: each direction was held steady for one to two
+seconds with the hand barely translating, so a velocity detector saw only the
+brief transition between poses and nothing during the hold. The page moved in
+jerks and then stopped.
 
-Two independent gates handle it. Speed, with hysteresis: a swipe must exceed
-`engageSpeed` to take hold and only stops counting below `releaseSpeed`, so a
-relaxed return never crosses the line and a deliberate stroke cannot flicker.
-And pose: only an extended index finger drives the page, so curling it is a
-deliberate escape hatch when a fast return is needed — the same idea as lifting
-a mouse off the pad.
+Holding also dissolves the return-stroke problem a swipe model has to solve.
+There is no return stroke: you do not swipe back, you stop pointing.
+
+The signal is the sine of the index finger's angle, measured knuckle to tip and
+divided by finger length. Against a real session it separates cleanly:
++0.87..+0.94 pointing up, -0.18..-0.57 pointing down.
+
+One trap worth recording. The obvious "is the index extended" test -- tip
+further from the wrist than the middle joint -- reports *curled* whenever the
+finger points downward, because the finger foreshortens as it angles toward the
+camera. Used as a gate it rejected the entire scroll-down gesture. The
+dependable gate is the other three fingers being curled, which measured 3 of 3
+on every frame of that session.
 
 ### Keep telemetry off the main thread too
 

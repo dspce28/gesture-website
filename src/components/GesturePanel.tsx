@@ -1,60 +1,60 @@
 import { useEffect, useRef } from 'react';
 import type { SessionStats } from '../gesture/session';
-import type { SwipeConfig, SwipeState } from '../gesture/swipe';
+import type { PointingConfig, PointingState } from '../gesture/pointing';
 import type { Landmark } from '../gesture/types';
 import type { GestureStatus } from '../react/useGestureScroll';
 import { HandCanvas } from './HandCanvas';
 
-const SWIPE_KNOBS: ReadonlyArray<{
-  key: 'engageSpeed' | 'releaseSpeed' | 'gain';
+const KNOBS: ReadonlyArray<{
+  key: 'neutral' | 'deadzone' | 'gain';
   label: string;
   min: number;
   max: number;
   step: number;
+  hint: string;
 }> = [
-  { key: 'engageSpeed', label: 'engage at', min: 0.2, max: 4, step: 0.1 },
-  { key: 'releaseSpeed', label: 'release at', min: 0.1, max: 2.5, step: 0.1 },
-  { key: 'gain', label: 'gain', min: 80, max: 1400, step: 20 },
+  { key: 'neutral', label: 'centre', min: -0.5, max: 0.8, step: 0.05, hint: 'elevation treated as "not pointing"' },
+  { key: 'deadzone', label: 'dead band', min: 0.05, max: 0.5, step: 0.05, hint: 'how far past centre before it moves' },
+  { key: 'gain', label: 'speed', min: 400, max: 6000, step: 100, hint: 'scroll px/s per unit of deflection' },
 ];
 
-const BLOCKED_LABEL: Record<SwipeState['blockedBy'], string> = {
-  none: 'driving',
-  pose: 'straighten your index finger',
-  speed: 'swipe faster to engage',
+const LABEL: Record<PointingState['blockedBy'], string> = {
+  none: 'scrolling',
+  pose: 'curl your other fingers',
+  neutral: 'point up or down',
   'no-hand': 'show your hand',
 };
-
-/** Full-scale of the speed meter, in hand-widths/s. */
-const METER_RANGE = 5;
 
 interface Props {
   status: GestureStatus;
   error: string | null;
-  config: SwipeConfig;
-  setConfig: React.Dispatch<React.SetStateAction<SwipeConfig>>;
+  config: PointingConfig;
+  setConfig: React.Dispatch<React.SetStateAction<PointingConfig>>;
   landmarksRef: React.RefObject<Landmark[] | null>;
-  swipeRef: React.RefObject<SwipeState>;
+  pointRef: React.RefObject<PointingState>;
   statsRef: React.RefObject<SessionStats | null>;
   onStart: () => void;
   onStop: () => void;
 }
 
+/** Maps elevation (-1..1) to a 0..100% position on the dial. */
+const pct = (elevation: number) => ((1 - elevation) / 2) * 100;
+
 export function GesturePanel({
-  status, error, config, setConfig, landmarksRef, swipeRef, statsRef, onStart, onStop,
+  status, error, config, setConfig, landmarksRef, pointRef, statsRef, onStart, onStop,
 }: Props) {
   const running = status === 'running';
 
   const stateEl = useRef<HTMLDivElement>(null);
-  const fillEl = useRef<HTMLDivElement>(null);
-  const speedEl = useRef<HTMLElement>(null);
+  const needleEl = useRef<HTMLDivElement>(null);
+  const degEl = useRef<HTMLElement>(null);
   const fpsEl = useRef<HTMLElement>(null);
   const costEl = useRef<HTMLElement>(null);
 
   /**
-   * Paint telemetry from refs in our own loop. Routing these through React
-   * state would re-render this tree on every tracked frame, and that cost lands
-   * on the main thread -- starving the scroll loop it is meant to be reporting
-   * on. Measured: doing it the naive way dropped scrolling to under 30fps.
+   * Paint telemetry from refs in our own loop. Routing it through React state
+   * re-renders the tree on every tracked frame, and that cost lands on the main
+   * thread -- starving the scroll loop it is meant to be reporting on.
    */
   useEffect(() => {
     if (!running) return;
@@ -62,14 +62,15 @@ export function GesturePanel({
 
     const paint = () => {
       raf = requestAnimationFrame(paint);
-      const s = swipeRef.current;
+      const p = pointRef.current;
       const stats = statsRef.current;
 
       if (stateEl.current) {
-        stateEl.current.textContent = BLOCKED_LABEL[s.blockedBy];
-        stateEl.current.classList.toggle('live', s.driving);
+        stateEl.current.textContent = LABEL[p.blockedBy];
+        stateEl.current.className = `state ${p.direction !== 'neutral' ? 'live' : ''}`;
       }
-      if (speedEl.current) speedEl.current.textContent = s.speed.toFixed(2);
+      if (needleEl.current) needleEl.current.style.top = `${pct(p.elevation)}%`;
+      if (degEl.current) degEl.current.textContent = `${p.degrees.toFixed(0)}°`;
       if (fpsEl.current) {
         fpsEl.current.textContent = `${stats?.fps ?? 0} fps`;
         fpsEl.current.className = (stats?.fps ?? 0) >= 20 ? 'ok' : 'warn';
@@ -77,42 +78,35 @@ export function GesturePanel({
       if (costEl.current && stats) {
         costEl.current.textContent = `${stats.inferenceMs.toFixed(0)}ms ${stats.delegate}`;
       }
-      if (fillEl.current) {
-        const pct = Math.min(50, (Math.abs(s.speed) / METER_RANGE) * 50);
-        const up = s.speed < 0;
-        fillEl.current.style.left = up ? 'auto' : '50%';
-        fillEl.current.style.right = up ? '50%' : 'auto';
-        fillEl.current.style.width = `${pct}%`;
-      }
     };
 
     paint();
     return () => cancelAnimationFrame(raf);
-  }, [running, swipeRef, statsRef]);
+  }, [running, pointRef, statsRef]);
 
-  const gateOffset = (config.engageSpeed / METER_RANGE) * 50;
+  const upEdge = pct(config.neutral + config.deadzone);
+  const downEdge = pct(config.neutral - config.deadzone);
 
   return (
     <aside className="ghud">
       {running ? (
         <>
-          <HandCanvas landmarksRef={landmarksRef} size={176} />
-
-          <div className="state" ref={stateEl}>
-            show your hand
+          <div className="dialwrap">
+            <HandCanvas landmarksRef={landmarksRef} size={150} />
+            {/* Vertical dial: top is pointing up, bottom is pointing down. */}
+            <div className="dial" aria-hidden="true">
+              <div className="dial-zone" style={{ top: `${upEdge}%`, height: `${downEdge - upEdge}%` }} />
+              <div className="dial-needle" ref={needleEl} />
+              <span className="dial-cap up">up</span>
+              <span className="dial-cap down">dn</span>
+            </div>
           </div>
 
-          {/* Speed meter, centred on zero: left is swipe-up, right is down. */}
-          <div className="meter" aria-hidden="true">
-            <div className="meter-zero" />
-            <div className="meter-fill" ref={fillEl} />
-            <div className="meter-gate" style={{ left: `${50 + gateOffset}%` }} />
-            <div className="meter-gate" style={{ left: `${50 - gateOffset}%` }} />
-          </div>
+          <div className="state" ref={stateEl}>show your hand</div>
 
           <div className="hud-row">
-            <span>finger</span>
-            <strong ref={speedEl}>0.00</strong>
+            <span>angle</span>
+            <strong ref={degEl}>0°</strong>
           </div>
           <div className="hud-row">
             <span>tracking</span>
@@ -124,8 +118,8 @@ export function GesturePanel({
           </div>
 
           <div className="knobs">
-            {SWIPE_KNOBS.map((k) => (
-              <label key={k.key}>
+            {KNOBS.map((k) => (
+              <label key={k.key} title={k.hint}>
                 <span>
                   {k.label}
                   <em>{config[k.key]}</em>
@@ -145,27 +139,23 @@ export function GesturePanel({
             <label className="check">
               <input
                 type="checkbox"
-                checked={config.requireIndexExtended}
+                checked={config.invert}
                 onChange={(e) =>
-                  setConfig((c) => ({
-                    ...c,
-                    requireIndexExtended: e.target.checked,
-                  }))
+                  setConfig((c) => ({ ...c, invert: e.target.checked }))
                 }
               />
-              <span>curl finger to pause</span>
+              <span>flip direction</span>
             </label>
           </div>
 
-          <button className="reset" onClick={onStop}>
-            Stop camera
-          </button>
+          <button className="reset" onClick={onStop}>Stop camera</button>
         </>
       ) : (
         <>
           <p className="ghud-intro">
-            Swipe your hand <strong>up</strong> to scroll down. Curl your index
-            finger to move back without scrolling.
+            Hold up your index finger with the others curled. Point it{' '}
+            <strong>up</strong> to scroll up, <strong>down</strong> to scroll
+            down. Hold the direction — the page keeps moving.
           </p>
           <button
             className="btn small"

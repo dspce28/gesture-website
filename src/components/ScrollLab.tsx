@@ -7,7 +7,7 @@ import { GesturePanel } from './GesturePanel';
 import { ScrollHud } from './ScrollHud';
 
 const SECTIONS = [
-  { t: 'Momentum, not position', b: 'Every input injects velocity into one integrator. A wheel notch, a keypress and a gesture flick all arrive the same way, so they cannot feel like different mechanisms.' },
+  { t: 'Momentum, not position', b: 'Every input injects velocity into one integrator. A wheel notch, a keypress and a pointed finger all arrive the same way, so they cannot feel like different mechanisms.' },
   { t: 'Time, not frames', b: 'Decay resolves against elapsed seconds, never a per-frame fraction. A dropped frame changes nothing about how far the page travels.' },
   { t: 'The compositor does the work', b: 'Content rides a translate3d transform, so movement happens on the compositor rather than through layout on every frame.' },
   { t: 'One source of truth', b: 'Native document scrolling is off. Two scroll positions for one page means dragging the scrollbar moves one and not the other, so the engine owns the position outright.' },
@@ -55,17 +55,17 @@ export function ScrollLab() {
     <>
       <div ref={contentRef}>
         <div className="lab">
-          <p className="eyebrow">Phase 2 · swipe to scroll</p>
+          <p className="eyebrow">Phase 2 · point to scroll</p>
           <h1>Scroll physics</h1>
           <p className="lead">
-            Built and tuned on the wheel first, with no camera involved. Gestures
-            now feed the same engine: a swipe is just another velocity source, so
-            whatever the wheel feels like, your hand feels like too.
+            Built and tuned on the wheel first, with no camera involved. Pointing
+            now feeds the same engine: your finger angle is just another velocity
+            source, so whatever the wheel feels like, your hand feels like too.
           </p>
           <p className="lead">
             Use the wheel, arrows, space, page keys, home and end. Or enable
-            gestures on the left and swipe your hand. Flick hard and watch it
-            coast.
+            gestures on the left and point your finger up or down, holding the
+            direction for as long as you want the page to move.
           </p>
 
           {SECTIONS.map((s, i) => (
@@ -96,7 +96,7 @@ export function ScrollLab() {
         config={gesture.config}
         setConfig={gesture.setConfig}
         landmarksRef={gesture.landmarksRef}
-        swipeRef={gesture.swipeRef}
+        pointRef={gesture.pointRef}
         statsRef={gesture.statsRef}
         onStart={gesture.start}
         onStop={gesture.stop}
