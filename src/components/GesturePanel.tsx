@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { SessionStats } from '../gesture/session';
 import type { PointingConfig, PointingState } from '../gesture/pointing';
+import type { TapState } from '../gesture/tap';
 import type { Landmark } from '../gesture/types';
 import type { GestureStatus } from '../react/useGestureScroll';
 import { HandCanvas } from './HandCanvas';
@@ -32,6 +33,7 @@ interface Props {
   setConfig: React.Dispatch<React.SetStateAction<PointingConfig>>;
   landmarksRef: React.RefObject<Landmark[] | null>;
   pointRef: React.RefObject<PointingState>;
+  tapStateRef: React.RefObject<TapState>;
   statsRef: React.RefObject<SessionStats | null>;
   onStart: () => void;
   onStop: () => void;
@@ -41,7 +43,8 @@ interface Props {
 const pct = (elevation: number) => ((1 - elevation) / 2) * 100;
 
 export function GesturePanel({
-  status, error, config, setConfig, landmarksRef, pointRef, statsRef, onStart, onStop,
+  status, error, config, setConfig, landmarksRef, pointRef, tapStateRef, statsRef,
+  onStart, onStop,
 }: Props) {
   const running = status === 'running';
 
@@ -50,6 +53,7 @@ export function GesturePanel({
   const degEl = useRef<HTMLElement>(null);
   const fpsEl = useRef<HTMLElement>(null);
   const costEl = useRef<HTMLElement>(null);
+  const pinchEl = useRef<HTMLElement>(null);
 
   /**
    * Paint telemetry from refs in our own loop. Routing it through React state
@@ -78,11 +82,18 @@ export function GesturePanel({
       if (costEl.current && stats) {
         costEl.current.textContent = `${stats.inferenceMs.toFixed(0)}ms ${stats.delegate}`;
       }
+      if (pinchEl.current) {
+        const tapState = tapStateRef.current;
+        pinchEl.current.textContent = tapState.closed
+          ? `closed ${'*'.repeat(tapState.pending + 1)}`
+          : tapState.pinch.toFixed(2);
+        pinchEl.current.className = tapState.closed ? 'ok' : '';
+      }
     };
 
     paint();
     return () => cancelAnimationFrame(raf);
-  }, [running, pointRef, statsRef]);
+  }, [running, pointRef, tapStateRef, statsRef]);
 
   const upEdge = pct(config.neutral + config.deadzone);
   const downEdge = pct(config.neutral - config.deadzone);
@@ -111,6 +122,10 @@ export function GesturePanel({
           <div className="hud-row">
             <span>tracking</span>
             <strong ref={fpsEl}>0 fps</strong>
+          </div>
+          <div className="hud-row">
+            <span>pinch</span>
+            <strong ref={pinchEl}>—</strong>
           </div>
           <div className="hud-row">
             <span>cost</span>
@@ -155,7 +170,9 @@ export function GesturePanel({
           <p className="ghud-intro">
             Hold up your index finger with the others curled. Point it{' '}
             <strong>up</strong> to scroll up, <strong>down</strong> to scroll
-            down. Hold the direction — the page keeps moving.
+            down, holding the direction as long as you want the page to move.
+            Level the finger to aim the ring, then <strong>double-tap</strong>{' '}
+            thumb to fingertip to click.
           </p>
           <button
             className="btn small"

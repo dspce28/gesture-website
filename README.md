@@ -14,6 +14,9 @@ Gesture vocabulary:
 
 ## Status
 
+**Phase 3 — cursor and click.** Level the finger to aim a ring, double-tap
+thumb to fingertip to click. Clicks snap to nearby controls.
+
 **Phase 2 — point to scroll.** Point the index finger up to scroll up, down
 to scroll down, and hold the direction. The gesture layer measures a hand and
 hands a velocity to the Phase 1 engine; it implements no scrolling of its own.
@@ -24,7 +27,7 @@ tracking at the same time makes it impossible to tell which layer is stuttering.
 
 **Phase 0 — pipeline.** Camera → worker → landmarks, with instrumentation.
 
-Next: double-tap to click, then pinch-hold to zoom.
+Next: pinch-hold to zoom, then the site itself.
 
 ## Running it
 
@@ -43,7 +46,8 @@ a secure origin, so `getUserMedia` works there without a certificate.
       worker/             MediaPipe inference, off the main thread
       session.ts          camera ownership + worker plumbing
     src/scroll/           physics, scroller backends, rAF loop
-    src/react/            hooks binding the two together
+    src/react/            hooks binding the layers together
+    src/dom/              click dispatch and hit-testing (needs the DOM)
     src/components/       diagnostics and tuning UI
     public/mediapipe/     vendored wasm + model (generated, git-ignored)
     scripts/              vendoring script, runs on postinstall
@@ -114,3 +118,20 @@ HUD components now read live values from refs inside their own paint loop and
 write to the DOM directly. React state is reserved for discrete, low-frequency
 facts like status and error text. The same rule applies to any scroll-linked
 effect added later.
+
+### One posture, two modes
+
+Relative cursor motion needs a clutch -- the equivalent of lifting a mouse off
+the pad. The scroll dead band is that clutch, so it costs no extra gesture:
+point up or down and you scroll with the cursor parked, hold the finger level
+and you aim.
+
+A single tap deliberately does nothing. The hand passes through near-pinched
+shapes constantly while gesturing, and a single-tap click misfires on all of
+them. Thresholds are a Schmitt trigger with real headroom: a hand pointing
+downward measures a pinch ratio of 0.35-0.44, well clear of the 0.15 needed to
+count as closed.
+
+Clicks aim from roughly 180ms before contact, because fingers drift as they
+fold, and snap to a nearby control, which absorbs the last few pixels of human
+error.

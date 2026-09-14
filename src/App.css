@@ -412,3 +412,60 @@ h1 { margin: 0 0 0.75rem; font-size: clamp(1.9rem, 5vw, 2.6rem); letter-spacing:
 
 .dial-cap.up { top: 2px; }
 .dial-cap.down { bottom: 2px; }
+
+/* ── gesture cursor ────────────────────────────────── */
+.gesture-cursor {
+  --squeeze: 1;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 2.5px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2147483000;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity 0.2s, border-color 0.15s, background 0.15s;
+}
+
+/* Inner disc shrinks as the pinch closes: feedback before the click lands. */
+.gesture-cursor::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: scale(calc((1 - var(--squeeze)) * 2.2));
+  transition: transform 0.08s linear;
+}
+
+.gesture-cursor.over {
+  border-color: var(--ok);
+  background: rgba(61, 220, 132, 0.16);
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+}
+
+.gesture-ripple {
+  position: fixed;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2147483001;
+  animation: gesture-ripple 0.55s ease-out forwards;
+}
+
+@keyframes gesture-ripple {
+  to { transform: scale(6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gesture-ripple { animation-duration: 0.01s; }
+}

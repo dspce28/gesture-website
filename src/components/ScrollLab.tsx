@@ -3,6 +3,7 @@ import { useGestureScroll } from '../react/useGestureScroll';
 import { ScrollController, type ControllerStats } from '../scroll/controller';
 import { DEFAULT_PHYSICS, type PhysicsConfig } from '../scroll/physics';
 import { TransformScroller } from '../scroll/scroller';
+import { GestureCursor } from './GestureCursor';
 import { GesturePanel } from './GesturePanel';
 import { ScrollHud } from './ScrollHud';
 
@@ -97,10 +98,19 @@ export function ScrollLab() {
         setConfig={gesture.setConfig}
         landmarksRef={gesture.landmarksRef}
         pointRef={gesture.pointRef}
+        tapStateRef={gesture.tapStateRef}
         statsRef={gesture.statsRef}
         onStart={gesture.start}
         onStop={gesture.stop}
       />
+
+      {gesture.status === 'running' && (
+        <GestureCursor
+          pointerRef={gesture.pointerRef}
+          activeRef={gesture.aimingRef}
+          pinchRef={gesture.pinchProgressRef}
+        />
+      )}
 
       <ScrollHud
         statsRef={statsRef}
