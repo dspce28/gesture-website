@@ -545,3 +545,41 @@ a.sc, a.port-card, a.pc, a.tc, a.nav-logo, .foot-col a, .foot-social a {
 }
 a.sc h3, a.port-card h4 { color: var(--navy); }
 a.sc p, a.port-card p { color: var(--muted); }
+
+/* ── VALUE CARDS (About) ─────────────────── */
+/* The single-file site inlined these styles on every card; hoisted here so the
+   markup carries data rather than repeated presentation. */
+.value-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1200px;margin:0 auto;}
+.vc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:2rem;text-align:center;transition:all .35s;}
+.vc:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:var(--blue);}
+.vc-icon{font-size:2rem;margin-bottom:1rem;}
+.vc h4{color:var(--navy);font-size:.95rem;margin-bottom:.4rem;font-weight:700;}
+.vc p{font-size:.83rem;color:var(--muted);line-height:1.6;}
+@media (max-width:900px){.value-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:560px){.value-grid{grid-template-columns:1fr;}}
+
+/* ── HOISTED FROM INLINE STYLES ──────────── */
+/* The single-file site inlined these on every instance. Same visuals, but the
+   markup now carries content rather than repeated presentation. */
+.sc-points{list-style:none;font-size:.83rem;color:var(--muted);margin:.8rem 0 1.2rem;line-height:2.1;}
+.port-view{background:#fff;color:var(--navy);padding:8px 18px;font-size:.8rem;border-radius:50px;}
+.job-apply{padding:10px 22px;font-size:.82rem;white-space:nowrap;}
+
+/* Contact page */
+.response-note{background:var(--blue-lt);border:1px solid rgba(79,94,219,.15);
+  border-radius:var(--r);padding:1.5rem;margin-top:1rem;}
+.response-note h4{font-size:.9rem;color:var(--navy);margin-bottom:.4rem;}
+.response-note p{font-size:.84rem;color:var(--muted);line-height:1.6;}
+.response-note strong{color:var(--blue);}
+.cf-error{color:#dc2626;font-size:.82rem;margin-top:.4rem;}
+.cf-sent{color:#15803d;font-size:.82rem;margin-top:.4rem;}
+.cf-submit{width:100%;padding:16px;font-size:.95rem;justify-content:center;border-radius:12px;margin-top:.6rem;}
+.cf-note{color:var(--muted2);font-size:.77rem;text-align:center;margin-top:.8rem;}
+
+/* ── STACKING FIX ────────────────────────── */
+/* The decorative mesh layers are absolutely positioned, so without a stacking
+   context of their own the static content beneath them paints *under* the
+   gradient -- a few percent of blue wash over every heading. Lifting the
+   content restores true text colour. */
+.about-hero-inner, .inner-hero-inner, .hero-inner { position: relative; z-index: 1; }

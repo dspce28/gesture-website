@@ -16,7 +16,7 @@ export function useReveal<T extends HTMLElement>() {
     const el = ref.current;
     if (!el) return;
 
-    const targets = el.querySelectorAll<HTMLElement>('.rev, .rev-r');
+    const targets = el.querySelectorAll<HTMLElement>('.rev, .rev-l, .rev-r');
     if (!targets.length) return;
 
     // Respect a reduced-motion preference by simply showing everything.
