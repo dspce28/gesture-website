@@ -583,3 +583,7 @@ a.sc p, a.port-card p { color: var(--muted); }
    gradient -- a few percent of blue wash over every heading. Lifting the
    content restores true text colour. */
 .about-hero-inner, .inner-hero-inner, .hero-inner { position: relative; z-index: 1; }
+
+/* Pulse the indicator while a flick is being absorbed, so the refractory
+   period is visible rather than reading as the gesture being ignored. */
+.gbar-dot.firing{background:var(--gold);transform:scale(1.5);transition:transform .12s;}

@@ -21,6 +21,7 @@ import {
   type PointingConfig,
   type PointingState,
 } from '../gesture/pointing';
+import { DEFAULT_FLICK, FlickDetector, type FlickConfig, type FlickState } from '../gesture/flick';
 import { PointerTracker } from '../gesture/pointer';
 import { TapDetector, type TapState } from '../gesture/tap';
 import { GestureSession, type SessionStats } from '../gesture/session';
@@ -40,22 +41,33 @@ const IDLE_POINTING: PointingState = {
 
 const IDLE_TAP: TapState = { pinch: 1, closed: false, pending: 0, clicked: false };
 
+const IDLE_FLICK: FlickState = {
+  speedY: 0,
+  speedX: 0,
+  fired: 0,
+  cooling: false,
+  blockedBy: 'no-hand',
+};
+
 export function useGestureScroll(
   controllerRef: React.RefObject<ScrollController | null>
 ) {
   const [status, setStatus] = useState<GestureStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<PointingConfig>({ ...DEFAULT_POINTING });
+  const [flickConfig, setFlickConfig] = useState<FlickConfig>({ ...DEFAULT_FLICK });
 
   const sessionRef = useRef<GestureSession | null>(null);
   const detectorRef = useRef<PointingDetector | null>(null);
   const tapRef = useRef<TapDetector | null>(null);
+  const flickRef = useRef<FlickDetector | null>(null);
   const pointerRef = useRef<PointerTracker | null>(null);
 
   // Live values, polled by the HUD and cursor. Never rendered directly.
   const landmarksRef = useRef<Landmark[] | null>(null);
   const pointRef = useRef<PointingState>(IDLE_POINTING);
   const tapStateRef = useRef<TapState>(IDLE_TAP);
+  const flickStateRef = useRef<FlickState>(IDLE_FLICK);
   const statsRef = useRef<SessionStats | null>(null);
   const aimingRef = useRef(false);
   /** 0 = open hand, 1 = fully pinched. Drives the cursor's squeeze. */
@@ -64,6 +76,10 @@ export function useGestureScroll(
   useEffect(() => {
     if (detectorRef.current) Object.assign(detectorRef.current.config, config);
   }, [config]);
+
+  useEffect(() => {
+    if (flickRef.current) Object.assign(flickRef.current.config, flickConfig);
+  }, [flickConfig]);
 
   // Ease the cursor on the render clock, independent of the tracking rate, so
   // it stays smooth between inference frames.
@@ -86,10 +102,12 @@ export function useGestureScroll(
     sessionRef.current = null;
     detectorRef.current = null;
     tapRef.current = null;
+    flickRef.current = null;
     pointerRef.current = null;
     landmarksRef.current = null;
     pointRef.current = IDLE_POINTING;
     tapStateRef.current = IDLE_TAP;
+    flickStateRef.current = IDLE_FLICK;
     statsRef.current = null;
     aimingRef.current = false;
     setStatus('idle');
@@ -104,9 +122,11 @@ export function useGestureScroll(
 
     const detector = new PointingDetector(config);
     const tap = new TapDetector();
+    const flick = new FlickDetector(flickConfig);
     const pointer = new PointerTracker(window.innerWidth, window.innerHeight);
     detectorRef.current = detector;
     tapRef.current = tap;
+    flickRef.current = flick;
     pointerRef.current = pointer;
 
     const session = new GestureSession({
@@ -121,6 +141,7 @@ export function useGestureScroll(
 
         if (!frame.landmarks) {
           pointRef.current = detector.reset();
+          flickStateRef.current = flick.reset();
           tap.reset();
           pointer.release();
           tapStateRef.current = IDLE_TAP;
@@ -130,26 +151,33 @@ export function useGestureScroll(
         }
 
         const m = analyze(frame.landmarks);
-        const next = detector.update(m, frame.t);
-        pointRef.current = next;
+        pointRef.current = detector.update(m, frame.t);
 
-        // Drive only while a direction is actually pointed. Writing zero in the
-        // neutral band would hard-stop the page; leaving it alone lets the
-        // engine's friction glide to rest, which reads as deceleration.
-        if (next.direction !== 'neutral') {
-          controllerRef.current?.physics.drive(next.scrollVelocity);
+        // One quick vertical flick pages the view. scrollTo animates it with
+        // the engine's spring, so the jump is smooth and always lands exactly
+        // one page away rather than wherever momentum happened to run out.
+        const flickState = flick.update(m, frame.t);
+        flickStateRef.current = flickState;
+
+        if (flickState.fired !== 0) {
+          const controller = controllerRef.current;
+          if (controller) {
+            const page = window.innerHeight * flick.config.pageFraction;
+            controller.scrollTo(controller.physics.position + flickState.fired * page);
+          }
         }
 
-        // The scroll dead band doubles as the cursor's clutch: level finger
-        // aims, tilted finger scrolls with the cursor parked.
-        const aiming = next.blockedBy === 'neutral';
-        aimingRef.current = aiming;
+        // The cursor now tracks the finger the whole time rather than being
+        // parked by a scroll pose. Speed alone separates the two intents: slow
+        // movement aims, a fast vertical snap pages. That removes the clutch
+        // and the mode switch with it.
+        aimingRef.current = true;
 
         pointer.update(
           m.tip,
           m.handSize,
           frame.t,
-          aiming,
+          true,
           window.innerWidth,
           window.innerHeight
         );
@@ -184,6 +212,9 @@ export function useGestureScroll(
     error,
     config,
     setConfig,
+    flickConfig,
+    setFlickConfig,
+    flickStateRef,
     landmarksRef,
     pointRef,
     tapStateRef,
