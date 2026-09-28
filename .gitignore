@@ -1,9 +1,16 @@
 node_modules
-dist
+
+# Next.js build output
+.next
+out
+next-env.d.ts
+
 *.local
 .DS_Store
-.vite
 
 # Vendored by scripts/vendor-mediapipe.mjs on postinstall -- large and fully
 # reproducible (wasm from node_modules, model from a stable versioned URL).
 public/mediapipe/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
