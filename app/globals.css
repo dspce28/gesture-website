@@ -587,3 +587,9 @@ a.sc p, a.port-card p { color: var(--muted); }
 /* Pulse the indicator while a flick is being absorbed, so the refractory
    period is visible rather than reading as the gesture being ignored. */
 .gbar-dot.firing{background:var(--gold);transform:scale(1.5);transition:transform .12s;}
+
+/* A double-click draws a second, tighter ring so the two gestures are
+   distinguishable without watching what the page did. */
+.gesture-ripple.double{border-color:var(--gold);animation-duration:.42s;}
+.gesture-ripple.double::after{content:'';position:absolute;inset:-6px;border:2px solid var(--gold);
+  border-radius:50%;opacity:.55;}

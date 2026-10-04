@@ -1,17 +1,21 @@
 /**
- * Double-tap to click.
+ * Tap to click.
  *
- * Touch the index fingertip to the thumb twice in quick succession. A single
- * tap deliberately does nothing: the hand passes through near-pinched shapes
- * constantly while gesturing, and a single-tap click misfires on all of them.
- * Requiring two in a row costs the user almost nothing and removes that whole
- * class of false positive.
+ * Touch the index fingertip to the thumb once to click, twice to double-click
+ * — the same mapping a mouse has.
  *
- * Thresholds are a Schmitt trigger -- close far below where it reopens -- so a
- * fingertip hovering at the boundary cannot chatter out a stream of taps. The
- * numbers have real headroom: measured against a recording, a hand pointing
- * downward sits at a pinch ratio of 0.35-0.44, well clear of the 0.15 needed to
- * register as closed.
+ * The first tap fires its click immediately rather than waiting to find out
+ * whether a second one is coming. Waiting would put a few hundred milliseconds
+ * of lag on every single click, which is exactly the delay that made early
+ * touch browsers feel broken. Instead this follows what a real mouse does: the
+ * second tap fires its own click and then a double-click on top, so a listener
+ * for either event sees what it expects and nothing is held back.
+ *
+ * Thresholds form a Schmitt trigger — the pinch has to close well below where
+ * it reopens — so a fingertip resting near the boundary cannot chatter out a
+ * stream of taps. The numbers have real headroom: measured against a recording,
+ * a hand pointing downward sits at a pinch ratio of 0.35-0.44, comfortably
+ * clear of the 0.15 needed to register as closed.
  */
 
 export interface TapConfig {
@@ -19,12 +23,10 @@ export interface TapConfig {
   closeAt: number;
   /** Ratio above which it counts as open again. Must exceed closeAt. */
   openAt: number;
-  /** Longest a single tap may stay closed, ms. Longer is a hold, not a tap. */
+  /** Longest a tap may stay closed, ms. Longer is a hold, which zoom claims. */
   maxTapMs: number;
-  /** Longest gap between the two taps of a double-tap, ms. */
+  /** Two taps within this window are a double-click, ms. */
   doubleGapMs: number;
-  /** Ignore further clicks for this long after one fires, ms. */
-  cooldownMs: number;
   /**
    * How far back to take aim, ms. Fingers drift as they fold, so the position
    * at the moment of contact is not where the user was pointing when they
@@ -37,8 +39,7 @@ export const DEFAULT_TAP: TapConfig = {
   closeAt: 0.15,
   openAt: 0.28,
   maxTapMs: 320,
-  doubleGapMs: 420,
-  cooldownMs: 500,
+  doubleGapMs: 400,
   aimLookbackMs: 180,
 };
 
@@ -46,10 +47,11 @@ export interface TapState {
   /** Current pinch ratio, for the HUD. */
   pinch: number;
   closed: boolean;
-  /** Taps banked toward a double-tap (0 or 1). */
-  pending: number;
-  /** Set on the frame a click fires, otherwise null. */
-  clicked: boolean;
+  /**
+   * Set on the frame a click fires: 1 for a click, 2 for the second tap of a
+   * double-click (which fires a click *and* a double-click). 0 otherwise.
+   */
+  fired: 0 | 1 | 2;
 }
 
 export class TapDetector {
@@ -57,8 +59,6 @@ export class TapDetector {
   private closed = false;
   private closedAt = 0;
   private lastTapAt = 0;
-  private pending = 0;
-  private lastClickAt = 0;
 
   constructor(config: Partial<TapConfig> = {}) {
     this.config = { ...DEFAULT_TAP, ...config };
@@ -66,42 +66,36 @@ export class TapDetector {
 
   reset() {
     this.closed = false;
-    this.pending = 0;
     this.closedAt = 0;
     this.lastTapAt = 0;
   }
 
-  /** Feed one frame's pinch ratio. Returns whether a click fired this frame. */
+  /** Feed one frame's pinch ratio. */
   update(pinch: number, t: number): TapState {
-    const { closeAt, openAt, maxTapMs, doubleGapMs, cooldownMs } = this.config;
-    let clicked = false;
-
-    // Expire a lone first tap that was never followed up.
-    if (this.pending === 1 && t - this.lastTapAt > doubleGapMs) this.pending = 0;
+    const { closeAt, openAt, maxTapMs, doubleGapMs } = this.config;
+    let fired: 0 | 1 | 2 = 0;
 
     if (!this.closed && pinch < closeAt) {
       this.closed = true;
       this.closedAt = t;
     } else if (this.closed && pinch > openAt) {
       this.closed = false;
-      const heldFor = t - this.closedAt;
 
-      // A brief close-and-open is a tap. A long one is a hold -- that gesture
-      // belongs to zoom, so it must not bank a tap here.
-      if (heldFor <= maxTapMs) {
-        if (this.pending === 1 && t - this.lastTapAt <= doubleGapMs) {
-          this.pending = 0;
-          if (t - this.lastClickAt > cooldownMs) {
-            clicked = true;
-            this.lastClickAt = t;
-          }
+      // A brief close-and-open is a tap. A long one is a hold, and that
+      // gesture belongs to zoom, so it must not produce a click here.
+      if (t - this.closedAt <= maxTapMs) {
+        if (this.lastTapAt && t - this.lastTapAt <= doubleGapMs) {
+          fired = 2;
+          // Cleared so a third tap starts a fresh pair rather than firing a
+          // second double-click off the back of the same one.
+          this.lastTapAt = 0;
         } else {
-          this.pending = 1;
+          fired = 1;
           this.lastTapAt = t;
         }
       }
     }
 
-    return { pinch, closed: this.closed, pending: this.pending, clicked };
+    return { pinch, closed: this.closed, fired };
   }
 }

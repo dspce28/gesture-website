@@ -58,9 +58,20 @@ function fire(type: string, el: Element, x: number, y: number, extra: object = {
 
 /**
  * Dispatch a full click at a point, snapping to a nearby control first.
+ *
+ * `detail` is the click count, exactly as the DOM uses it: 1 for a single
+ * click, 2 for the second click of a double-click. Passing 2 also dispatches
+ * `dblclick` afterwards, which is the sequence a real mouse produces -- a
+ * double-click is two complete clicks with a dblclick on the end, not an event
+ * of its own. Listeners for either one then see what they expect.
+ *
  * Returns where the click actually landed, for the ripple.
  */
-export function clickAt(x: number, y: number): { x: number; y: number } {
+export function clickAt(
+  x: number,
+  y: number,
+  detail: 1 | 2 = 1
+): { x: number; y: number } {
   const target = clickableAt(x, y);
   const p = target ? { x: target.x, y: target.y } : { x, y };
 
@@ -69,11 +80,12 @@ export function clickAt(x: number, y: number): { x: number; y: number } {
 
   // Pointer events first, then mouse, matching what a real click produces --
   // libraries commonly listen for one or the other, not both.
-  fire('pointerdown', el, p.x, p.y, { pointerId: 1, pointerType: 'mouse', isPrimary: true });
-  fire('mousedown', el, p.x, p.y, { button: 0, buttons: 1 });
-  fire('pointerup', el, p.x, p.y, { pointerId: 1, pointerType: 'mouse', isPrimary: true });
-  fire('mouseup', el, p.x, p.y, { button: 0 });
-  fire('click', el, p.x, p.y, { button: 0 });
+  fire('pointerdown', el, p.x, p.y, { pointerId: 1, pointerType: 'mouse', isPrimary: true, detail });
+  fire('mousedown', el, p.x, p.y, { button: 0, buttons: 1, detail });
+  fire('pointerup', el, p.x, p.y, { pointerId: 1, pointerType: 'mouse', isPrimary: true, detail });
+  fire('mouseup', el, p.x, p.y, { button: 0, detail });
+  fire('click', el, p.x, p.y, { button: 0, detail });
+  if (detail === 2) fire('dblclick', el, p.x, p.y, { button: 0, detail: 2 });
 
   if (el instanceof HTMLElement) {
     try {
@@ -85,10 +97,14 @@ export function clickAt(x: number, y: number): { x: number; y: number } {
   return p;
 }
 
-/** A brief expanding ring at the click point, so the user sees it registered. */
-export function ripple(x: number, y: number) {
+/**
+ * A brief expanding ring at the click point, so the user sees it registered.
+ * A double-click draws a second, tighter ring so the two are distinguishable
+ * without having to watch what the page did.
+ */
+export function ripple(x: number, y: number, double = false) {
   const dot = document.createElement('div');
-  dot.className = 'gesture-ripple';
+  dot.className = double ? 'gesture-ripple double' : 'gesture-ripple';
   dot.style.left = `${x}px`;
   dot.style.top = `${y}px`;
   document.body.appendChild(dot);

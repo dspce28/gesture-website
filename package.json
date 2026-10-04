@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/vendor-mediapipe.mjs",
     "vendor": "node scripts/vendor-mediapipe.mjs",
-    "test": "tsx tests/flick.test.ts"
+    "test": "tsx tests/flick.test.ts && tsx tests/tap.test.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",

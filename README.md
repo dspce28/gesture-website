@@ -7,10 +7,11 @@ Gesture vocabulary:
 
 | Gesture | Action |
 | --- | --- |
-| Swipe index finger up / down | Scroll down / up |
-| Double-tap index to thumb | Click |
-| Pinch, hold ~250ms, then spread / close | Zoom in / out |
-| Curl index finger | Neutral return stroke (does not scroll) |
+| Quick vertical flick of the index finger | Scroll one page |
+| Move the finger slowly | Move the cursor |
+| Tap index to thumb | Click |
+| Tap index to thumb twice | Double-click |
+| Pinch and hold, then spread / close | Zoom in / out *(not built yet)* |
 
 ## Status
 

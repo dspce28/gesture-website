@@ -39,7 +39,7 @@ const IDLE_POINTING: PointingState = {
   blockedBy: 'no-hand',
 };
 
-const IDLE_TAP: TapState = { pinch: 1, closed: false, pending: 0, clicked: false };
+const IDLE_TAP: TapState = { pinch: 1, closed: false, fired: 0 };
 
 const IDLE_FLICK: FlickState = {
   speedY: 0,
@@ -189,11 +189,11 @@ export function useGestureScroll(
           Math.max(0, 1 - (m.pinch - tap.config.closeAt) / (0.6 - tap.config.closeAt))
         );
 
-        if (tapState.clicked) {
+        if (tapState.fired !== 0) {
           // Aim from before the fingers folded: they drift while closing.
           const aim = pointer.aimAt(tap.config.aimLookbackMs, frame.t);
-          const landed = clickAt(aim.x, aim.y);
-          ripple(landed.x, landed.y);
+          const landed = clickAt(aim.x, aim.y, tapState.fired);
+          ripple(landed.x, landed.y, tapState.fired === 2);
         }
       },
       onError: (message, fatal) => {
