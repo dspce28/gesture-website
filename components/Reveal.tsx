@@ -80,3 +80,27 @@ export function useCountUp(to: number, durationMs = 1400) {
 
   return ref;
 }
+
+/**
+ * A number that counts up once, the first time it scrolls into view.
+ *
+ * Separate component rather than a bare hook so several can sit side by side
+ * in the stats strip, each owning its own observer and animation.
+ */
+export function CountUp({
+  to,
+  suffix,
+  durationMs = 1600,
+}: {
+  to: number;
+  suffix?: string;
+  durationMs?: number;
+}) {
+  const ref = useCountUp(to, durationMs);
+  return (
+    <span className="stat-num">
+      <span className="stat-count" ref={ref}>0</span>
+      {suffix && <span className="accent">{suffix}</span>}
+    </span>
+  );
+}

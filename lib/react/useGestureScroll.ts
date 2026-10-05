@@ -72,6 +72,8 @@ export function useGestureScroll(
   const aimingRef = useRef(false);
   /** 0 = open hand, 1 = fully pinched. Drives the cursor's squeeze. */
   const pinchProgressRef = useRef(0);
+  /** Lowest pinch ratio seen since the camera started, for calibration. */
+  const minPinchRef = useRef(1);
 
   useEffect(() => {
     if (detectorRef.current) Object.assign(detectorRef.current.config, config);
@@ -110,6 +112,7 @@ export function useGestureScroll(
     flickStateRef.current = IDLE_FLICK;
     statsRef.current = null;
     aimingRef.current = false;
+    minPinchRef.current = 1;
     setStatus('idle');
   }, []);
 
@@ -184,6 +187,7 @@ export function useGestureScroll(
 
         const tapState = tap.update(m.pinch, frame.t);
         tapStateRef.current = tapState;
+        if (m.pinch < minPinchRef.current) minPinchRef.current = m.pinch;
         pinchProgressRef.current = Math.min(
           1,
           Math.max(0, 1 - (m.pinch - tap.config.closeAt) / (0.6 - tap.config.closeAt))
@@ -222,6 +226,8 @@ export function useGestureScroll(
     pointerRef,
     aimingRef,
     pinchProgressRef,
+    minPinchRef,
+    tapConfigRef: tapRef,
     start,
     stop,
   };

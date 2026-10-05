@@ -36,8 +36,14 @@ export interface TapConfig {
 }
 
 export const DEFAULT_TAP: TapConfig = {
-  closeAt: 0.15,
-  openAt: 0.28,
+  // 0.15 proved too tight to reach in practice. The ratio divides by hand size
+  // (wrist to middle knuckle), so how low a full fingertip touch can go depends
+  // on hand proportions and camera distance — it does not reliably approach
+  // zero. 0.20 is easier to hit while still clearing the 0.35-0.44 that a hand
+  // measures while scrolling, so scrolling still cannot click by accident.
+  // The bar shows the lowest pinch seen, so this can be set from measurement.
+  closeAt: 0.2,
+  openAt: 0.32,
   maxTapMs: 320,
   doubleGapMs: 400,
   aimLookbackMs: 180,

@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCountUp, useReveal } from '@/components/Reveal';
+import { CountUp, useCountUp, useReveal } from '@/components/Reveal';
+import { Arrow } from '@/components/Ui';
 
 const SERVICES = [
   { n: '01', icon: '💻', t: 'Custom Software Development', b: 'Tailored software built precisely for your workflows, processes, and scale. No templates — pure custom engineering.' },
@@ -27,9 +28,17 @@ const WORK = [
 ];
 
 const QUOTES = [
-  { q: 'LogiCube IT transformed our entire operations with a custom ERP. The team delivered beyond expectations — our efficiency improved by 60% within 3 months of launch.', i: 'RS', n: 'Rahul Sharma', r: 'CEO, TechCorp India' },
-  { q: 'Exceptional mobile app development. They understood our complex healthcare requirements and delivered a HIPAA-compliant solution in record time. Truly world-class.', i: 'AM', n: 'Anita Mehta', r: 'CTO, MedAxis' },
-  { q: 'The AI automation solution LogiCube built saves our team 40+ hours per week. Their technical expertise, communication, and commitment to quality is unmatched.', i: 'KP', n: 'Kyle Peterson', r: 'Director, CloudEdge US' },
+  { q: 'LogiCube IT transformed our entire operations with a custom ERP. The team delivered beyond expectations — our efficiency improved by 60% within 3 months of launch.', i: 'RS', n: 'Rahul Sharma', r: 'CEO, TechCorp India', bg: 'var(--blue-lt)', fg: 'var(--blue)' },
+  { q: 'Exceptional mobile app development. They understood our complex healthcare requirements and delivered a HIPAA-compliant solution in record time. Truly world-class.', i: 'AM', n: 'Anita Mehta', r: 'CTO, MedAxis', bg: 'var(--gold-lt)', fg: 'var(--gold-dk)' },
+  { q: 'The AI automation solution LogiCube built saves our team 40+ hours per week. Their technical expertise, communication, and commitment to quality is unmatched.', i: 'KP', n: 'Kyle Peterson', r: 'Director, CloudEdge US', bg: '#EDF2FF', fg: 'var(--indigo)' },
+];
+
+/** The animated strip beneath the Why Us section. */
+const STATS = [
+  { to: 200, suffix: '+', label: 'Projects Delivered' },
+  { to: 50, suffix: '+', label: 'Expert Team Members' },
+  { to: 25, suffix: '+', label: 'Countries Served' },
+  { to: 98, suffix: '%', label: 'Client Satisfaction' },
 ];
 
 const MARQUEE = [
@@ -165,23 +174,69 @@ export default function Home() {
         </div>
       </section>
 
-      <section>
-        <div className="sh rev">
-          <div className="tag tag-gold">Why Choose Us</div>
-          <h2 className="display">
-            Why leading companies<br />choose <span className="italic">LogiCube IT</span>
-          </h2>
+      <section style={{ background: 'var(--white)' }}>
+        <div className="why-wrap">
+          <div className="why-visual rev-l">
+            <div className="why-img-frame">
+              <Image
+                src="/images/1774545979937_6.png"
+                alt="Our team collaborating on premium solutions"
+                width={620}
+                height={560}
+              />
+              <div className="why-img-overlay" />
+            </div>
+            <div className="why-stat-card wsc1 rev">
+              <div className="wsc-label">Avg. Project Delivery</div>
+              <div className="wsc-val">
+                14 <span style={{ fontSize: '1rem', color: 'var(--muted)' }}>weeks</span>
+              </div>
+              <div className="wsc-sub">↓ 40% vs industry avg</div>
+            </div>
+            <div className="why-stat-card wsc2 rev">
+              <div className="wsc-label">Client Retention Rate</div>
+              <div className="wsc-val">
+                98<span style={{ fontSize: '1.2rem', color: 'var(--blue)' }}>%</span>
+              </div>
+              <div className="wsc-sub">Year over year ↑</div>
+            </div>
+          </div>
+
+          <div className="rev-r">
+            <div className="tag">Why Choose Us</div>
+            <h2 className="display" style={{ marginBottom: '1.5rem' }}>
+              Why leading companies<br />choose <span className="italic">LogiCube IT</span>
+            </h2>
+            <ul className="why-list">
+              {REASONS.map((r) => (
+                <li className="why-item" key={r.n}>
+                  <span className="wi-num">{r.n}</span>
+                  <div className="wi-body">
+                    <h4>{r.t}</h4>
+                    <p>{r.b}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="btn-row" style={{ marginTop: '2rem' }}>
+              <Link className="btn btn-navy" href="/about">
+                About Us <Arrow />
+              </Link>
+            </div>
+          </div>
         </div>
-        <div className="why-grid rev">
-          {REASONS.map((r) => (
-            <div className="wc" key={r.n}>
-              <div className="wc-num">{r.n}</div>
-              <h3>{r.t}</h3>
-              <p>{r.b}</p>
+      </section>
+
+      <div className="stats-strip">
+        <div className="stats-grid">
+          {STATS.map((s, i) => (
+            <div className={i === 0 ? 'stat-box rev' : `stat-box rev d${i + 1}`} key={s.label}>
+              <CountUp to={s.to} suffix={s.suffix} />
+              <span className="stat-label">{s.label}</span>
             </div>
           ))}
         </div>
-      </section>
+      </div>
 
       <section style={{ background: 'var(--bg)' }}>
         <div className="sh rev">
@@ -226,15 +281,17 @@ export default function Home() {
           </h2>
         </div>
         <div className="test-grid rev">
-          {QUOTES.map((q) => (
-            <div className="tc" key={q.i}>
-              <div className="stars-row">★★★★★</div>
-              <p className="tc-quote">&ldquo;{q.q}&rdquo;</p>
+          {QUOTES.map((q, i) => (
+            <div className={`tc rev d${i + 1}`} key={q.i}>
+              <div className="tc-stars">★★★★★</div>
+              <p className="tc-text">&ldquo;{q.q}&rdquo;</p>
               <div className="tc-author">
-                <div className="tc-avatar">{q.i}</div>
+                <div className="tc-av" style={{ background: q.bg, color: q.fg }}>
+                  {q.i}
+                </div>
                 <div>
-                  <strong>{q.n}</strong>
-                  <p>{q.r}</p>
+                  <div className="tc-name">{q.n}</div>
+                  <div className="tc-role">{q.r}</div>
                 </div>
               </div>
             </div>

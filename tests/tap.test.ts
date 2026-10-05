@@ -62,8 +62,15 @@ const cases: Array<{ name: string; got: number[]; want: number[] }> = [
   },
   {
     name: 'hovering at the threshold does not chatter',
-    got: run([[0.2, 50], [0.26, 50], [0.2, 50], [0.26, 50], [0.2, 50]]),
+    got: run([[0.25, 50], [0.3, 50], [0.25, 50], [0.3, 50], [0.25, 50]]),
     want: [],
+  },
+  {
+    // A fingertip touch does not reliably approach zero: the ratio divides by
+    // hand size, so this is the realistic value a real tap has to clear.
+    name: 'a shallow but real tap (0.18) clicks',
+    got: run([[0.18, 90], [OPEN, 30]]),
+    want: [1],
   },
 ];
 

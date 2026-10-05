@@ -24,13 +24,14 @@ const HINT: Record<string, string> = {
  */
 export function GestureBar() {
   const { gesture } = useGesture();
-  const { status, error, flickStateRef, statsRef, landmarksRef } = gesture;
+  const { status, error, flickStateRef, statsRef, landmarksRef, tapStateRef, minPinchRef, tapConfigRef } = gesture;
   const running = status === 'running';
 
   const [expanded, setExpanded] = useState(false);
   const hintRef = useRef<HTMLSpanElement>(null);
   const fpsRef = useRef<HTMLSpanElement>(null);
   const dotRef = useRef<HTMLSpanElement>(null);
+  const pinchRef = useRef<HTMLDivElement>(null);
 
   // Painted from refs, never React state: at tracking rate, setState here
   // would re-render the entire site tens of times a second.
@@ -47,10 +48,23 @@ export function GestureBar() {
       if (fpsRef.current) {
         fpsRef.current.textContent = `${statsRef.current?.fps ?? 0}fps`;
       }
+
+      // Pinch is the one number worth surfacing: a click that never fires is
+      // otherwise indistinguishable from a threshold that cannot be reached.
+      if (pinchRef.current) {
+        const tapState = tapStateRef.current;
+        const closeAt = tapConfigRef.current?.config.closeAt ?? 0.15;
+        const low = minPinchRef.current;
+        pinchRef.current.textContent = tapState.closed
+          ? 'pinch CLOSED'
+          : `pinch ${tapState.pinch.toFixed(2)}  ·  best ${low.toFixed(2)} / need ${closeAt}`;
+        pinchRef.current.className =
+          'gbar-pinch' + (tapState.closed ? ' ok' : low <= closeAt ? '' : ' warn');
+      }
     };
     raf = requestAnimationFrame(paint);
     return () => cancelAnimationFrame(raf);
-  }, [running, flickStateRef, statsRef]);
+  }, [running, flickStateRef, statsRef, tapStateRef, minPinchRef, tapConfigRef]);
 
   if (!running) {
     return (
@@ -77,6 +91,8 @@ export function GestureBar() {
         <span className="gbar-hint" ref={hintRef} />
         <span className="gbar-fps" ref={fpsRef} />
       </div>
+
+      <div className="gbar-pinch" ref={pinchRef} />
 
       <div className="gbar-actions">
         <button onClick={() => setExpanded((v) => !v)}>
