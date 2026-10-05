@@ -600,3 +600,14 @@ a.sc p, a.port-card p { color: var(--muted); }
   font:600 .62rem ui-monospace,monospace;color:var(--muted);text-align:center;letter-spacing:.01em;}
 .gbar-pinch.ok{background:rgba(34,197,94,.14);color:#15803d;}
 .gbar-pinch.warn{background:rgba(201,168,76,.16);color:var(--gold-dk);}
+
+/* The logo is near-square (483x512). next/image emits width and height
+   attributes, so any box that is not that ratio distorts it — the footer rule
+   sets height alone, which let a wide attribute squash the mark flat. Pinning
+   width to auto hands sizing back to CSS wherever the logo appears. */
+.foot-brand img, .nav-logo img, .hcm-logo img { width: auto; }
+
+/* The gesture pill is pinned bottom-left and would otherwise sit on top of the
+   copyright line. Reserve room for it at the end of the page. */
+.foot-bottom { padding-bottom: 4.5rem; }
+@media (max-width: 700px) { .foot-bottom { padding-bottom: 5.5rem; } }

@@ -30,8 +30,8 @@ export function SiteFooter() {
           <Image
             src="/images/cropped-Final-Logicube-3.png"
             alt="LogiCube IT"
-            width={150}
-            height={40}
+            width={483}
+            height={512}
           />
           <p>
             Premium IT solutions for forward-thinking businesses. Your trusted

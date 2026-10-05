@@ -52,8 +52,8 @@ export function SiteNav() {
             <Image
               src="/images/cropped-Final-Logicube-3.png"
               alt="LogiCube IT"
-              width={140}
-              height={38}
+              width={483}
+              height={512}
               priority
             />
             <span>
